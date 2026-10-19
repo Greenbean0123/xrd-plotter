@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
@@ -45,7 +46,10 @@ def main():
         install = folder / 'installed'
         install.mkdir()
         target = install / 'XRD Plotter.exe'
-        package, helper = folder / 'package.exe', folder / 'helper.exe'
+        profile = folder / 'profile'
+        transaction = profile / 'XRD Plotter' / 'updates' / uuid.uuid4().hex
+        transaction.mkdir(parents=True)
+        package, helper = transaction / 'package.exe', transaction / 'helper.exe'
         shutil.copy2(old_binary, target)
         shutil.copy2(old_binary, helper)
         shutil.copy2(built, package)
@@ -57,11 +61,10 @@ def main():
         parent = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(180)'])
         job = {'target': str(target), 'package': str(package), 'release': release,
                'parent_pid': parent.pid, 'parent_bootloader_pid': 0,
-               'ready': str(folder / 'helper-ready'), 'health': str(folder / 'new-app-ready'),
-               'result': str(folder / 'result.json')}
-        job_file = folder / 'job.json'
+               'ready': str(transaction / 'helper-ready'), 'health': str(transaction / 'new-app-ready'),
+               'result': str(transaction / 'result.json')}
+        job_file = transaction / 'job.json'
         job_file.write_text(json.dumps(job), encoding='utf-8')
-        profile = folder / 'profile'
         session_file = profile / 'XRD Plotter' / 'update-session.json'
         session_file.parent.mkdir(parents=True)
         session_file.write_text(json.dumps({
@@ -83,7 +86,7 @@ def main():
                 time.sleep(0.2)
             # Installer is ready, but cannot change the existing app before approval/exit.
             assert target.exists() and not list(install.glob('*.previous-*.exe'))
-            (folder / 'install-approved').write_text('approved')
+            (transaction / 'install-approved').write_text('approved')
             parent.terminate()
             parent.wait(timeout=10)
             assert process.wait(timeout=150) == 0, (folder / 'installer.log').read_text(errors='replace')
@@ -91,8 +94,13 @@ def main():
             assert result['success'], result
             assert Path(job['health']).read_text() == 'ready'
             assert not session_file.exists(), 'Previous-version update session was not restored'
-            assert Path(result['backup']).exists()
-            print(f'Frozen update {old_version} -> {next_version}: helper readiness, parent-exit wait, replacement, GUI restart and backup verified.')
+            deadline = time.monotonic() + 35
+            while transaction.exists() and time.monotonic() < deadline:
+                time.sleep(0.2)
+            assert not transaction.exists(), 'Successful update transaction was not cleaned'
+            assert not Path(result['backup']).exists(), 'Old backup was not cleaned'
+            assert target.exists()
+            print(f'Frozen update {old_version} -> {next_version}: replacement, GUI/session restore and automatic backup/package cleanup verified.')
         finally:
             if parent.poll() is None:
                 parent.terminate()

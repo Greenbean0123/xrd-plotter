@@ -76,6 +76,8 @@ def launch():
                     health = os.environ.pop('XRD_UPDATE_HEALTH_FILE', '')
                     if health:
                         root.after(250, lambda: Path(health).write_text('ready'))
+                    from update_cleanup import schedule
+                    root.after(1000, schedule)
                     return
         except Empty:
             root.after(50, poll)

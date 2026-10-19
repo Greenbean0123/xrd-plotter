@@ -87,3 +87,8 @@ in `references/`. Invalid files are skipped with a warning.
 In **Settings**, turn **Show save success messages** on or off to control the
 confirmation after PNG/PDF/SVG or processed-data exports. The preference is
 remembered between launches; export errors and overwrite confirmations still appear.
+
+Successful automatic updates clean their previous-program backup and temporary
+transaction files after the new GUI is ready and the updater has exited. Failed
+updates keep recovery files. Startup data and manually downloaded installers
+are outside this cleanup scope.

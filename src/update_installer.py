@@ -211,7 +211,7 @@ def run(job_path):
         if cancellation.exists():
             raise RuntimeError('Update installation was cancelled.')
         backup = replace_and_restart(target, staged, Path(job['health']))
-        result_path.write_text(json.dumps({'success': True, 'backup': str(backup)}), encoding='utf-8')
+        result_path.write_text(json.dumps({'success': True, 'backup': str(backup), 'helper_pid': os.getpid()}), encoding='utf-8')
     except Exception as error:
         result_path.write_text(json.dumps({'success': False, 'error': str(error)}), encoding='utf-8')
         import traceback
