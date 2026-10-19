@@ -25,6 +25,9 @@ def main():
         '--workpath', str(build), '--specpath', str(build), '--icon', str(icon),
         '--osx-bundle-identifier', 'org.uvvisplotter.app',
         '--add-data', f'{ROOT / "assets"}:assets',
+        '--hidden-import', 'matplotlib.backends.backend_pdf',
+        '--hidden-import', 'matplotlib.backends.backend_svg',
+        '--hidden-import', 'matplotlib.backends.backend_agg',
         '--exclude-module', 'scipy', '--exclude-module', 'pandas',
         '--exclude-module', 'IPython', '--exclude-module', 'pytest',
         str(ROOT / 'mac_entry.py')], check=True, cwd=ROOT)
