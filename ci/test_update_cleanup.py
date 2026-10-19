@@ -81,6 +81,34 @@ class CleanupTests(unittest.TestCase):
         self.assertFalse(update_cleanup.cleanup(self.base, self.target))
         self.assertTrue(self.target.exists())
 
+    def test_locked_helper_retains_metadata_for_retry(self):
+        original = update_cleanup.remove
+        def locked(path):
+            if path.name == 'helper':
+                raise PermissionError('helper still exiting')
+            original(path)
+        with patch.object(update_cleanup, 'remove', side_effect=locked):
+            self.assertFalse(update_cleanup.cleanup(self.folder, self.target))
+        self.assertTrue((self.folder / 'job.json').exists())
+        self.assertTrue((self.folder / 'result.json').exists())
+        self.assertTrue(update_cleanup.cleanup(self.folder, self.target))
+        self.assertTrue(self.target.exists())
+
+    def test_mac_application_backup_directory(self):
+        target = self.target.parent / 'XRD Plotter.app'
+        target.mkdir()
+        (target / 'new').write_text('new')
+        backup = self.target.parent / 'XRD Plotter.previous-abcd1234.app'
+        backup.mkdir()
+        (backup / 'old').write_text('old')
+        self.result['backup'] = str(backup)
+        self.write_result()
+        (self.folder / 'job.json').write_text(json.dumps({'target': str(target),
+            'health': str(self.folder / 'new-app-ready')}))
+        self.assertTrue(update_cleanup.cleanup(self.folder, target))
+        self.assertFalse(backup.exists())
+        self.assertTrue((target / 'new').exists())
+
 
 if __name__ == '__main__':
     unittest.main()
