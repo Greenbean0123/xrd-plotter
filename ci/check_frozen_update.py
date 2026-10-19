@@ -5,6 +5,7 @@ This does not publish a release or replace the real installed application.
 """
 from pathlib import Path
 import base64
+import argparse
 import hashlib
 import json
 import os
@@ -18,12 +19,25 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'src'))
 from cryptography.hazmat.primitives import serialization
 import updater
+from app_version import __version__
 
 
 def main():
     if sys.platform != 'win32':
         raise SystemExit('This integration smoke test is for Windows.')
-    built = ROOT / 'dist' / 'XRD Plotter.exe'
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--old-binary', type=Path)
+    parser.add_argument('--old-version')
+    parser.add_argument('--new-binary', type=Path, default=ROOT / 'dist' / 'XRD Plotter.exe')
+    args = parser.parse_args()
+    if args.old_binary and not args.old_version:
+        parser.error('--old-version is required with --old-binary')
+    built = args.new_binary
+    old_binary = args.old_binary or built
+    old_version = args.old_version or __version__
+    parts = list(updater.version_tuple(__version__))
+    parts[-1] += 1
+    next_version = __version__ if args.old_binary else '.'.join(map(str, parts))
     private = serialization.load_pem_private_key(
         (ROOT / '.release-keys' / 'update-signing-key.pem').read_bytes(), password=None)
     with tempfile.TemporaryDirectory(prefix='xrd-update-smoke-') as directory:
@@ -32,13 +46,14 @@ def main():
         install.mkdir()
         target = install / 'XRD Plotter.exe'
         package, helper = folder / 'package.exe', folder / 'helper.exe'
-        for path in (target, package, helper):
-            shutil.copy2(built, path)
-        payload = {'schema': 1, 'version': '0.0.3', 'notes': 'Isolated smoke test only', 'assets': {
+        shutil.copy2(old_binary, target)
+        shutil.copy2(old_binary, helper)
+        shutil.copy2(built, package)
+        payload = {'schema': 1, 'version': next_version, 'notes': 'Isolated smoke test only', 'assets': {
             'windows-x86_64': {'url': 'https://example.test/test.exe', 'format': 'exe',
                 'size': package.stat().st_size, 'sha256': hashlib.sha256(package.read_bytes()).hexdigest()}}}
         envelope = {'payload': payload, 'signature': base64.b64encode(private.sign(updater.canonical(payload))).decode()}
-        release = updater.verify_manifest(envelope, updater.bundled_config()['public_key'], '0.0.2')
+        release = updater.verify_manifest(envelope, updater.bundled_config()['public_key'], old_version)
         parent = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(180)'])
         job = {'target': str(target), 'package': str(package), 'release': release,
                'parent_pid': parent.pid, 'parent_bootloader_pid': 0,
@@ -67,7 +82,7 @@ def main():
             assert result['success'], result
             assert Path(job['health']).read_text() == 'ready'
             assert Path(result['backup']).exists()
-            print('Frozen helper readiness, parent-exit wait, replacement, GUI restart and backup verified.')
+            print(f'Frozen update {old_version} -> {next_version}: helper readiness, parent-exit wait, replacement, GUI restart and backup verified.')
         finally:
             if parent.poll() is None:
                 parent.terminate()

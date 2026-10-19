@@ -375,16 +375,6 @@ def gui(initial_dir, root=None):
     header.pack(side='top', fill='x')
     ttk.Label(header, text='XRD Plotter', style='Title.TLabel').pack(side='left')
     ttk.Label(header, text='  /  Pattern workspace', style='Muted.TLabel').pack(side='left', padx=10)
-    appearance_controls = ttk.Frame(header)
-    appearance_controls.pack(side='right')
-    ttk.Label(appearance_controls,text='Theme',style='Muted.TLabel').pack(side='left',padx=(0,6))
-    theme_picker = ttk.Combobox(appearance_controls,textvariable=theme_choice,values=('Light','Dark'),state='readonly',width=7)
-    theme_picker.pack(side='left',padx=(0,12))
-    theme_picker.bind('<<ComboboxSelected>>',apply_ui_appearance)
-    ttk.Label(appearance_controls,text='UI scale',style='Muted.TLabel').pack(side='left',padx=(0,6))
-    scale_picker = ttk.Combobox(appearance_controls,textvariable=scale_choice,values=('100%','110%','125%','150%'),state='readonly',width=7)
-    scale_picker.pack(side='left')
-    scale_picker.bind('<<ComboboxSelected>>',apply_ui_appearance)
     root.minsize(720, 400)
     split_panes = tk.PanedWindow(root, orient='horizontal', sashwidth=6,
                                 sashrelief='flat', sashcursor='sb_h_double_arrow',
@@ -414,16 +404,16 @@ def gui(initial_dir, root=None):
     tabs.pack(fill='both', expand=True)
     data_page = ttk.Frame(tabs, padding=(10, 12))
     layout_page = ttk.Frame(tabs, padding=(12, 12))
-    colors_page = ttk.Frame(tabs, padding=(12, 12))
+    settings_page = ttk.Frame(tabs, padding=(12, 12))
     tabs.add(data_page, text='Data')
     tabs.add(layout_page, text='Layout')
-    tabs.add(colors_page, text='Colors')
+    tabs.add(settings_page, text='Settings')
     tab_buttons = []
     def select_tab(index):
         tabs.select(index)
         for i, button in enumerate(tab_buttons):
             button.configure(style='Accent.TButton' if i == index else 'InactiveTab.TButton')
-    for index, caption in enumerate(('Data', 'Layout', 'Colors')):
+    for index, caption in enumerate(('Data', 'Layout', 'Settings')):
         button = ttk.Button(tab_bar, text=caption, command=lambda i=index: select_tab(i))
         button.grid(row=0, column=index, sticky='nsew', padx=2)
         tab_bar.columnconfigure(index, weight=1, uniform='workspace_tabs')
@@ -438,6 +428,23 @@ def gui(initial_dir, root=None):
     tabs.bind('<<NotebookTabChanged>>', sync_tabs)
     select_tab(0)
     sync_tabs()
+
+    ttk.Label(settings_page, text='Appearance', style='Section.TLabel').pack(anchor='w', pady=(0, 8))
+    appearance_controls = ttk.Frame(settings_page)
+    appearance_controls.pack(fill='x')
+    appearance_controls.columnconfigure(1, weight=1)
+    ttk.Label(appearance_controls, text='Theme').grid(row=0, column=0, sticky='w', padx=(0, 12), pady=5)
+    theme_picker = ttk.Combobox(appearance_controls, textvariable=theme_choice,
+                               values=('Light', 'Dark'), state='readonly', width=12)
+    theme_picker.grid(row=0, column=1, sticky='ew', pady=5)
+    theme_picker.bind('<<ComboboxSelected>>', apply_ui_appearance)
+    ttk.Label(appearance_controls, text='UI scale').grid(row=1, column=0, sticky='w', padx=(0, 12), pady=5)
+    scale_picker = ttk.Combobox(appearance_controls, textvariable=scale_choice,
+                               values=('100%', '110%', '125%', '150%'), state='readonly', width=12)
+    scale_picker.grid(row=1, column=1, sticky='ew', pady=5)
+    scale_picker.bind('<<ComboboxSelected>>', apply_ui_appearance)
+    ttk.Separator(settings_page).pack(fill='x', pady=(18, 12))
+    ttk.Label(settings_page, text='Updates', style='Section.TLabel').pack(anchor='w', pady=(0, 6))
 
     panel_window = control_canvas.create_window((0, 0), window=panel, anchor='nw')
     def update_control_region(event=None):
@@ -896,31 +903,37 @@ def gui(initial_dir, root=None):
     order_tree.bind('<Alt-Up>',lambda event: move_global(-1))
     order_tree.bind('<Alt-Down>',lambda event: move_global(1))
     variables = {}
+    ttk.Label(layout_page, text='Plot layout', style='Section.TLabel').pack(anchor='w', pady=(0, 5))
     for key, label, default in [('xmin', '2θ minimum (°)', '10'), ('xmax', '2θ maximum (°)', '90'),
                                  ('wavelength', 'CIF wavelength (Å)', '1.54059'), ('spacing', 'Vertical spacing', '1.35'), ('dpi', 'Export DPI (PNG)', '400'),
                                  ('width_cm', 'Image width (cm)', '34.29'), ('height_cm', 'Image height (cm; blank = auto)', ''),
                                  ('xlabel', 'X-axis title', '2θ (°)'), ('ylabel', 'Y-axis title', ''),
-                                 ('color', 'Global curve color', '#0000dd'), ('title', 'Plot title', '')]:
-        field_parent = colors_page if key == 'color' else layout_page
-        ttk.Label(field_parent, text=label).pack(anchor='w', pady=(5, 0))
+                                 ('title', 'Plot title', '')]:
+        ttk.Label(layout_page, text=label).pack(anchor='w', pady=(5, 0))
         variables[key] = tk.StringVar(value=default)
-        ttk.Entry(field_parent, textvariable=variables[key]).pack(fill='x')
-        if key == 'color':
-            ttk.Button(colors_page, text='Apply Color to All Patterns', command=apply_color_to_all).pack(fill='x', pady=3)
-    ttk.Label(colors_page, text='Custom palette (click a swatch to choose its color)').pack(anchor='w', pady=(8, 0))
-    palette_list = tk.Listbox(colors_page, height=3, exportselection=False, background=theme_colors.get('field','white'), foreground=theme_colors.get('text','#24324a'), selectbackground='#e7edff', selectforeground='#24324a', borderwidth=0, highlightthickness=1, highlightbackground='#e1e7ef')
+        ttk.Entry(layout_page, textvariable=variables[key]).pack(fill='x')
+    ttk.Separator(layout_page).pack(fill='x', pady=(18, 12))
+    ttk.Label(layout_page, text='Colors', style='Section.TLabel').pack(anchor='w', pady=(0, 5))
+    color_controls = ttk.Frame(layout_page)
+    color_controls.pack(fill='x')
+    ttk.Label(color_controls, text='Global curve color').pack(anchor='w', pady=(5, 0))
+    variables['color'] = tk.StringVar(value='#0000dd')
+    ttk.Entry(color_controls, textvariable=variables['color']).pack(fill='x')
+    ttk.Button(color_controls, text='Apply Color to All Patterns', command=apply_color_to_all).pack(fill='x', pady=3)
+    ttk.Label(color_controls, text='Custom palette (click a swatch to choose its color)').pack(anchor='w', pady=(8, 0))
+    palette_list = tk.Listbox(color_controls, height=3, exportselection=False, background=theme_colors.get('field','white'), foreground=theme_colors.get('text','#24324a'), selectbackground='#e7edff', selectforeground='#24324a', borderwidth=0, highlightthickness=1, highlightbackground='#e1e7ef')
     palette_list.pack(fill='x')
     palette_list.bind('<Double-Button-1>', lambda event: modify_palette('edit'))
-    palette_tools = ttk.Frame(colors_page)
+    palette_tools = ttk.Frame(color_controls)
     palette_tools.pack(fill='x', pady=3)
     for label, action in [('Add Color', 'add'), ('Edit Color', 'edit'), ('Remove', 'remove'), ('Up', 'up'), ('Down', 'down')]:
         ttk.Button(palette_tools, text=label, command=lambda a=action: modify_palette(a)).pack(side='left', fill='x', expand=True)
-    palette_preview = tk.Canvas(colors_page, height=29, highlightthickness=0, background=theme_colors.get('bg','white'), cursor='hand2')
+    palette_preview = tk.Canvas(color_controls, height=29, highlightthickness=0, background=theme_colors.get('bg','white'), cursor='hand2')
     palette_preview.pack(fill='x', pady=4)
     palette_preview.bind('<Configure>', update_palette_preview)
     palette_preview.bind('<Button-1>', click_palette)
     palette_ready[0] = True
-    ttk.Button(colors_page, text='Apply Custom Palette to All Patterns', command=apply_palette).pack(fill='x', pady=3)
+    ttk.Button(color_controls, text='Apply Custom Palette to All Patterns', command=apply_palette).pack(fill='x', pady=3)
     ttk.Label(layout_page, text='Changes apply with Preview / Update.\nExport size is independent of the window.', style='Muted.TLabel', wraplength=340).pack(anchor='w', pady=12)
     def draw():
         try:
@@ -1060,7 +1073,7 @@ def gui(initial_dir, root=None):
         session_path.write_text(json.dumps({'groups': saved_groups, 'order': global_order,
             'variables': {key: var.get() for key, var in variables.items()},
             'palette': custom_palette, 'theme': theme_choice.get(), 'scale': scale_choice.get()}), encoding='utf-8')
-    attach_updater(root, footer, __version__, before_restart=save_update_session)
+    attach_updater(root, settings_page, __version__, before_restart=save_update_session)
     apply_ui_appearance()
     initial = Path(initial_dir)
     if initial.is_dir():

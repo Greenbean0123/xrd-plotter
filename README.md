@@ -7,6 +7,7 @@ A desktop tool for stacked X-ray diffraction plots on Windows and macOS.
 - Subtract the background and normalize each scan by its maximum corrected intensity.
 - Import refinement CSV scans and PDF, CIF or XY references.
 - Adjust colors, labels, visibility, plotting order, figure size and export resolution.
+- Use Data, Layout and Settings tabs; colors live under Layout, while theme, UI scale and updates live under Settings.
 - Export PNG, PDF, SVG and processed data.
 - Cache parsed PDF references and show progress during startup.
 - Check signed update manifests, download compatible updates and restart with rollback.
