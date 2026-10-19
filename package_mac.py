@@ -4,8 +4,9 @@ import zipfile
 
 root = Path(__file__).resolve().parent
 output = root / 'releases' / 'XRD_Plotter_Mac.zip'
+output.parent.mkdir(parents=True, exist_ok=True)
 files = [root / name for name in ('Start.command', 'Repair.command', 'Diagnose.command',
-         'Build-Mac.command', 'build.py', 'requirements-build.txt', 'Mac-Instructions.txt', 'Update-Publishing.md')]
+         'Build-Mac.command', 'build.py', 'requirements-build.txt', 'Mac-Instructions.txt', 'Update-Publishing.md', 'LICENSE', 'README.md')]
 files += [p for folder in ('src', 'mac', 'demo-data') for p in (root / folder).rglob('*')
           if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc']
 files += [p for p in (root / 'mac-launcher').rglob('*') if p.is_file()]
