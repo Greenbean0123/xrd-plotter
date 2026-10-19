@@ -21,3 +21,19 @@ Publish UV-Vis releases with tags `uvvis-v0.0.1`, `uvvis-v0.0.2`, etc., and atta
 Input files are read locally and are never modified. No experimental files are bundled.
 
 Build a Windows executable with `python -m pip install pyinstaller` then `python build_windows.py`.
+
+
+## Mac trial builds
+
+Mac trial installers are built with `.github/workflows/build-uvvis-macos.yml`.
+The workflow uploads build artifacts only; it does not create or update a public
+GitHub release. Public release of the Mac builds is pending user trial approval.
+Apple Silicon and Intel builds are separate. Open the matching DMG and drag
+UV-Vis Plotter.app to Applications, then launch it from Applications.
+
+For a local build on a Mac, install the packages in requirements.txt plus
+PyInstaller and Pillow, then run `python build_macos.py` from this folder.
+Outputs are written to cloud-output/. The build verifies the architecture,
+ad-hoc code signature, frozen GUI initialization, PNG/PDF/SVG exports and DMG
+integrity. Update preferences are stored in
+`~/Library/Application Support/UV-Vis Plotter/updates.json`.
