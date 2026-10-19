@@ -61,11 +61,20 @@ def main():
                'result': str(folder / 'result.json')}
         job_file = folder / 'job.json'
         job_file.write_text(json.dumps(job), encoding='utf-8')
+        profile = folder / 'profile'
+        session_file = profile / 'XRD Plotter' / 'update-session.json'
+        session_file.parent.mkdir(parents=True)
+        session_file.write_text(json.dumps({
+            'groups': {'samples': [[{'path': str(ROOT / 'demo-data' / 'Synthetic Demo A.csv')},
+                'Saved update pattern', '#ff6600', {'_order_id': 'saved-pattern', '_visible': True}]], 'cards': []},
+            'order': ['saved-pattern'], 'variables': {'color': '#ff0000', 'dpi': '200'},
+            'palette': ['#ff0000', '#00ff00'], 'theme': 'Dark', 'scale': '125%',
+        }), encoding='utf-8')
         process = None
         try:
             with (folder / 'installer.log').open('wb') as log:
                 process = subprocess.Popen([str(helper), '--apply-update', str(job_file)],
-                    env=dict(os.environ, PYINSTALLER_RESET_ENVIRONMENT='1'),
+                    env=dict(os.environ, PYINSTALLER_RESET_ENVIRONMENT='1', LOCALAPPDATA=str(profile)),
                     creationflags=subprocess.CREATE_NO_WINDOW, stdout=log, stderr=log)
             deadline = time.monotonic() + 60
             while not Path(job['ready']).exists():
@@ -81,6 +90,7 @@ def main():
             result = json.loads(Path(job['result']).read_text(encoding='utf-8'))
             assert result['success'], result
             assert Path(job['health']).read_text() == 'ready'
+            assert not session_file.exists(), 'Previous-version update session was not restored'
             assert Path(result['backup']).exists()
             print(f'Frozen update {old_version} -> {next_version}: helper readiness, parent-exit wait, replacement, GUI restart and backup verified.')
         finally:
