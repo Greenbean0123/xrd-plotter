@@ -1084,10 +1084,10 @@ def gui(initial_dir, root=None):
             session = json.loads(session_path.read_text(encoding='utf-8'))
             restored = {'samples': [], 'cards': []}
             for kind in restored:
-                for location, label, color, style in session['groups'][kind]:
+                for location, label, color, label_style in session['groups'][kind]:
                     path = default_input_dir() / location['bundled'] if 'bundled' in location else Path(location['path'])
                     if path.is_file():
-                        restored[kind].append((str(path), label, color, style))
+                        restored[kind].append((str(path), label, color, label_style))
             groups.update(restored)
             global_order[:] = session['order']
             for key, value in session['variables'].items():
