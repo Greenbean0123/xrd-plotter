@@ -14,7 +14,7 @@ Run `python uvvis_plotter.py`, or open the packaged `UV-Vis Plotter 0.0.1.exe`.
 
 ## GitHub update checks
 
-Checks run in the background on startup (can be disabled), with a manual Check for Updates button. Settings are separate from XRD under `%LOCALAPPDATA%/UV-Vis Plotter/updates.json`. The default GitHub repository is `Greenbean0123/xrd-plotter`; edit owner/repository in the Updates panel to use a separate repository.
+Checks run in the background on startup (can be disabled), with a manual Check for Updates button. Settings are separate from XRD under `%LOCALAPPDATA%/UV-Vis Plotter/updates.json`. The default GitHub repository is `Greenbean0123/xrd-plotter`. The repository address and release-tag details are hidden in the interface. The automatic-check preference is saved immediately.
 
 Publish UV-Vis releases with tags `uvvis-v0.0.1`, `uvvis-v0.0.2`, etc., and attach the matching EXE to each GitHub release. The checker ignores XRD tags, draft releases and prereleases. It reports when no UV-Vis releases exist. An available update offers to open its GitHub release page for manual download; it does not replace the running executable automatically.
 

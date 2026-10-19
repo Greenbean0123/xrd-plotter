@@ -80,15 +80,11 @@ def attach(root, parent, version):
     frame = ttk.LabelFrame(parent, text=f'Updates · v{version}', padding=6)
     frame.pack(fill='x', pady=8)
     automatic = tk.BooleanVar(value=config['automatic'])
-    repository = tk.StringVar(value=config['repository'])
-    ttk.Label(frame, text='GitHub repository (owner/repository)').pack(anchor='w')
-    ttk.Entry(frame, textvariable=repository).pack(fill='x')
-    status = ttk.Label(frame, text='UV-Vis tags: uvvis-vMAJOR.MINOR.PATCH', wraplength=260)
+    status = ttk.Label(frame, text='Ready to check for updates.', wraplength=260)
 
     def save():
         try:
-            validate_repository(repository.get().strip())
-            config.update(repository=repository.get().strip(), automatic=automatic.get())
+            config.update(automatic=automatic.get())
             path = settings_path()
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(config, indent=2), encoding='utf-8')
@@ -112,7 +108,6 @@ def attach(root, parent, version):
         Thread(target=worker, daemon=True).start()
 
     ttk.Checkbutton(frame, text='Check automatically on startup', variable=automatic, command=save).pack(anchor='w')
-    ttk.Button(frame, text='Save update settings', command=save).pack(fill='x', pady=3)
     button = ttk.Button(frame, text='Check for Updates', command=start)
     button.pack(fill='x')
     status.pack(anchor='w', pady=4)
