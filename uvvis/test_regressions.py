@@ -37,6 +37,31 @@ def main():
         controls['Legend'].invoke()
         assert app.ax.get_legend() is not None
         assert any(line.get_visible() for line in app.ax.get_xgridlines())
+        root.deiconify()
+        root.geometry('1050x680')
+        root.update()
+        widgets = list(descendants(root))
+        entry = next(w for w in widgets if w.winfo_class() == 'TEntry')
+        dropdown = next(w for w in widgets if w.winfo_class() == 'TCombobox')
+        app.sidebar_scroll.yview_moveto(0)
+        entry.event_generate('<MouseWheel>', delta=-120)
+        root.update()
+        assert app.sidebar_scroll.yview()[0] > 0
+        entry.event_generate('<MouseWheel>', delta=120)
+        root.update()
+        assert app.sidebar_scroll.yview()[0] == 0
+        dropdown.event_generate('<MouseWheel>', delta=-120)
+        root.update()
+        assert app.sidebar_scroll.yview()[0] > 0
+        assert app.mode.get() == app.MODES[0]
+        assert not any('UVVisSidebarWheel' in tag for tag in app.canvas.get_tk_widget().bindtags())
+        # High-resolution wheels accumulate fractional deltas.
+        app.sidebar_scroll.yview_moveto(0)
+        for _ in range(4):
+            entry.event_generate('<MouseWheel>', delta=-30)
+        root.update()
+        assert app.sidebar_scroll.yview()[0] > 0
+        root.withdraw()
         figure = Figure(figsize=(6, 4))
         app.update('export', figure)
         assert [line.get_label() for line in figure.axes[0].lines] == ['Exported']
@@ -56,7 +81,7 @@ def main():
         assert release_candidate(releases, '0.0.1')[1]['tag_name'] == 'uvvis-v0.0.2'
         assert release_candidate(releases, '0.0.2')[0] == 'current'
         assert release_candidate([{'tag_name': 'v99.0.0'}], '0.0.1')[0] == 'unpublished'
-        print('PASS: checkbox commands, show/export selection, CSV, dimensions, GitHub version filtering.')
+        print('PASS: sidebar wheel over controls, dropdown stability, high-resolution wheel, checkbox commands, show/export selection, CSV, dimensions, GitHub version filtering.')
     finally:
         root.destroy()
 

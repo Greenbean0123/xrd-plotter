@@ -1,6 +1,7 @@
 """Standalone UV-Vis desktop plotter. English UI; experimental files stay local."""
 import csv
 import math
+import sys
 from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, colorchooser
@@ -95,6 +96,8 @@ class App:
         scrollbar.pack(side='right', fill='y')
         scroll.pack(side='left', fill='y', expand=True)
         scroll.configure(yscrollcommand=scrollbar.set)
+        self.sidebar_scroll = scroll
+        self._wheel_remainder = 0.0
         sidebar = ttk.Frame(scroll, padding=16)
         window = scroll.create_window((0, 0), window=sidebar, anchor='nw', width=315)
         sidebar.bind('<Configure>', lambda event: scroll.configure(scrollregion=scroll.bbox('all')))
@@ -158,8 +161,37 @@ class App:
         self.preview.pack(fill='both', expand=True)
         self.canvas = FigureCanvasTkAgg(self.figure, master=self.preview)
         NavigationToolbar2Tk(self.canvas, panel)
+        # A scoped bind tag runs before native Entry/Combobox/Listbox bindings.
+        # Scrolling settings must not change the normalization dropdown value.
+        wheel_tag = f'UVVisSidebarWheel{id(self)}'
+        for sequence in ('<MouseWheel>', '<Button-4>', '<Button-5>'):
+            root.bind_class(wheel_tag, sequence, self.scroll_sidebar)
+        def bind_sidebar(widget):
+            widget.bindtags((wheel_tag,) + widget.bindtags())
+            for child in widget.winfo_children():
+                bind_sidebar(child)
+        bind_sidebar(scroll_panel)
         self.preview.bind('<Configure>', self.fit_preview)
         self.update()
+
+    def scroll_sidebar(self, event):
+        button = getattr(event, 'num', None)
+        if button in (4, 5):
+            steps = -1 if button == 4 else 1
+        else:
+            delta = getattr(event, 'delta', 0)
+            self._wheel_remainder -= delta / (1 if sys.platform == 'darwin' else 120)
+            steps = math.trunc(self._wheel_remainder)
+            self._wheel_remainder -= steps
+        if steps:
+            # Long data lists retain their own scrolling until a boundary.
+            if event.widget is self.listbox:
+                low, high = self.listbox.yview()
+                if (steps < 0 and low > 0) or (steps > 0 and high < 1):
+                    self.listbox.yview_scroll(steps, 'units')
+                    return 'break'
+            self.sidebar_scroll.yview_scroll(steps, 'units')
+        return 'break'
 
     def field(self, parent, caption, name, default, side=None):
         box = ttk.Frame(parent)
