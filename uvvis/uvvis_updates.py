@@ -1,6 +1,7 @@
 """Background GitHub release checks, isolated from XRD releases and settings."""
 import json
 import os
+import sys
 from pathlib import Path
 from queue import Queue, Empty
 import re
@@ -14,7 +15,8 @@ TAG_PREFIX = 'uvvis-v'
 
 
 def settings_path():
-    return Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'UV-Vis Plotter' / 'updates.json'
+    base = Path.home() / 'Library' / 'Application Support' if sys.platform == 'darwin' else Path(os.environ.get('LOCALAPPDATA', Path.home()))
+    return base / 'UV-Vis Plotter' / 'updates.json'
 
 
 def preferences():

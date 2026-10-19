@@ -80,8 +80,13 @@ class App:
         self.root = root
         root.title(f'UV-Vis Plotter {VERSION}')
         icon = Path(__file__).with_name('assets') / 'uvvis.ico'
-        if icon.exists():
+        if sys.platform == 'win32' and icon.exists():
             root.iconbitmap(str(icon))
+        else:
+            png = icon.with_suffix('.png')
+            if png.exists():
+                self._icon = tk.PhotoImage(file=str(png))
+                root.iconphoto(True, self._icon)
         root.geometry('1280x820')
         root.minsize(1050, 680)
         self.spectra = []
