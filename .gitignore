@@ -12,3 +12,4 @@ logs/
 .release-keys/
 cloud-output/
 src/defaultpattern/
+uvvis/
