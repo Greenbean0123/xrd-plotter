@@ -13,6 +13,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 from card_formats import read_cif, read_xy, card_title, auto_formula_title
 from card_cache import load_card
+from default_data import discover
 
 
 def palette_colors(colors, count):
@@ -443,6 +444,47 @@ def gui(initial_dir, root=None):
                                values=('100%', '110%', '125%', '150%'), state='readonly', width=12)
     scale_picker.grid(row=1, column=1, sticky='ew', pady=5)
     scale_picker.bind('<<ComboboxSelected>>', apply_ui_appearance)
+    ttk.Separator(settings_page).pack(fill='x', pady=(18, 12))
+    import ui_preferences
+    save_success_prompt = tk.BooleanVar(value=ui_preferences.load()['save_success_prompt'])
+    def remember_save_prompt():
+        try:
+            ui_preferences.save_success_prompt(save_success_prompt.get())
+        except OSError as error:
+            messagebox.showerror('Settings', f'Could not save preference: {error}')
+    ttk.Checkbutton(settings_page, text='Show save success messages', variable=save_success_prompt,
+                    command=remember_save_prompt).pack(anchor='w', pady=4)
+    ttk.Separator(settings_page).pack(fill='x', pady=(18, 12))
+    ttk.Label(settings_page, text='Startup data', style='Section.TLabel').pack(anchor='w', pady=(0, 6))
+    startup_folder = [Path(initial_dir)]
+    folder_text = tk.StringVar(value=str(startup_folder[0]))
+    ttk.Label(settings_page, textvariable=folder_text, wraplength=280).pack(anchor='w', pady=4)
+    ttk.Label(settings_page, text='patterns: sample CSV files\nreferences: PDF, CIF, XY or reference CSV',
+              wraplength=280).pack(anchor='w', pady=4)
+    def open_defaults():
+        import os
+        import subprocess
+        from default_data import prepare_folder
+        try:
+            folder = prepare_folder(startup_folder[0])
+            if sys.platform == 'win32':
+                os.startfile(str(folder))
+            else:
+                subprocess.Popen(['open' if sys.platform == 'darwin' else 'xdg-open', str(folder)])
+        except OSError as error:
+            messagebox.showerror('Startup data', str(error))
+    def choose_defaults():
+        from default_data import choose_folder
+        selected = filedialog.askdirectory(title='Choose startup data folder', initialdir=str(startup_folder[0]))
+        if selected:
+            try:
+                startup_folder[0] = choose_folder(selected)
+                folder_text.set(str(startup_folder[0]))
+            except OSError as error:
+                messagebox.showerror('Startup data', str(error))
+    ttk.Button(settings_page, text='Open Default Folder', command=open_defaults).pack(fill='x', pady=3)
+    ttk.Button(settings_page, text='Choose Folder...', command=choose_defaults).pack(fill='x', pady=3)
+    ttk.Button(settings_page, text='Reload Defaults', command=lambda: reload_defaults()).pack(fill='x', pady=3)
     ttk.Separator(settings_page).pack(fill='x', pady=(18, 12))
     ttk.Label(settings_page, text='Updates', style='Section.TLabel').pack(anchor='w', pady=(0, 6))
 
@@ -1033,7 +1075,8 @@ def gui(initial_dir, root=None):
                 return
             try:
                 export_data(data_dir, rendered['samples'], rendered['cards'], rendered['settings'])
-                messagebox.showinfo('Export complete', f'Processed data saved to:\n{data_dir}')
+                if save_success_prompt.get():
+                    messagebox.showinfo('Export complete', f'Processed data saved to:\n{data_dir}')
             except Exception as e:
                 messagebox.showerror('Export', str(e))
             return
@@ -1044,7 +1087,8 @@ def gui(initial_dir, root=None):
             try:
                 export_fig = make_figure(rendered['samples'], rendered['cards'], **rendered['settings'])
                 export_fig.savefig(path, format=format_name, dpi=rendered['settings']['dpi'])
-                messagebox.showinfo('Export complete', f'{format_name.upper()} saved to:\n{path}')
+                if save_success_prompt.get():
+                    messagebox.showinfo('Export complete', f'{format_name.upper()} saved to:\n{path}')
             except Exception as e:
                 messagebox.showerror('Export', str(e))
     ttk.Button(footer, text='Preview / Update', style='Accent.TButton', command=draw).pack(fill='x', pady=5)
@@ -1075,10 +1119,33 @@ def gui(initial_dir, root=None):
             'palette': custom_palette, 'theme': theme_choice.get(), 'scale': scale_choice.get()}), encoding='utf-8')
     attach_updater(root, settings_page, __version__, before_restart=save_update_session)
     apply_ui_appearance()
-    initial = Path(initial_dir)
-    if initial.is_dir():
-        groups['samples'] = [(str(p), re.search(r'\d+C', p.stem).group() if re.search(r'\d+C', p.stem) else p.stem, None, {}) for p in sorted(initial.glob('*.csv'))]
-        groups['cards'] = [(str(p), read_card(p)['label'], None, {}) for p in sorted(initial.iterdir()) if p.suffix.lower() in ('.pdf', '.cif', '.xy')]
+    def load_defaults():
+        sample_paths, card_paths = discover(startup_folder[0])
+        errors = []
+        for kind, paths, reader in (('samples', sample_paths, read_sample), ('cards', card_paths, read_card)):
+            groups[kind] = []
+            for path in paths:
+                try:
+                    item = reader(path)
+                    label = item['label']
+                    if kind == 'samples':
+                        match = re.search(r'\d+C', path.stem)
+                        label = match.group() if match else path.stem
+                    groups[kind].append((str(path), label, None, {}))
+                except Exception as error:
+                    errors.append(f'{path.name}: {error}')
+        if errors:
+            root.after_idle(lambda: messagebox.showwarning('Startup data', 'Some files could not be loaded:\n' + '\n'.join(errors)))
+    def reload_defaults():
+        if any(groups.values()) and not messagebox.askyesno('Reload Defaults',
+                'Replace the current file lists with the startup folder contents?'):
+            return
+        load_defaults()
+        global_order.clear()
+        for key in boxes:
+            refresh(key)
+        draw()
+    load_defaults()
     if session_path.is_file():
         try:
             session = json.loads(session_path.read_text(encoding='utf-8'))
@@ -1101,7 +1168,7 @@ def gui(initial_dir, root=None):
             pass
     for key in boxes:
         refresh(key)
-    if groups['samples']:
+    if groups['samples'] or groups['cards']:
         draw()
     apply_ui_appearance()
     if owns_root:
@@ -1109,16 +1176,29 @@ def gui(initial_dir, root=None):
 
 
 def default_input_dir():
+    from default_data import selected_folder, prepare_folder
+    from updater import data_directory
+    selected = selected_folder()
+    if selected is not None:
+        return selected
     if getattr(sys, 'frozen', False):
         executable = Path(sys.executable).resolve()
-        base = executable.parent
-        if sys.platform == 'darwin':
-            base = executable.parents[3]
+        base = executable.parents[3] if sys.platform == 'darwin' else executable.parent
         external = base / 'defaultpattern'
         if external.is_dir():
             return external
-    bundled = Path(__file__).resolve().parent / 'defaultpattern'
-    return bundled if bundled.is_dir() else Path(__file__).resolve().parent.parent / 'demo-data'
+    folder = data_directory() / 'defaultpattern'
+    if not folder.exists():
+        import shutil
+        bundled = Path(__file__).resolve().parent / 'defaultpattern'
+        if not bundled.is_dir():
+            bundled = Path(__file__).resolve().parent.parent / 'demo-data'
+        prepare_folder(folder)
+        samples, cards = discover(bundled)
+        for kind, paths in (('patterns', samples), ('references', cards)):
+            for source in paths:
+                shutil.copy2(source, folder / kind / source.name)
+    return folder
 
 
 def main():
@@ -1143,12 +1223,13 @@ def main():
         return
     matplotlib.use('Agg')
     folder = Path(args.input_dir)
-    samples = [read_sample(p) for p in sorted(folder.glob('*.csv'))]
+    sample_paths, card_paths = discover(folder)
+    samples = [read_sample(p) for p in sample_paths]
     for sample in samples:
         label = re.search(r'\d+C', sample['label'])
         if label:
             sample['label'] = label.group().replace('C', ' °C')
-    cards = [read_card(p, wavelength=args.wavelength, upper_angle=args.xmax) for p in sorted(folder.iterdir()) if p.suffix.lower() in ('.pdf', '.cif', '.xy')]
+    cards = [read_card(p, wavelength=args.wavelength, upper_angle=args.xmax) for p in card_paths]
     settings = {k: getattr(args, k) for k in ['xmin', 'xmax', 'title', 'color', 'spacing', 'dpi', 'width_cm', 'height_cm', 'xlabel', 'ylabel', 'wavelength']}
     fig = make_figure(samples, cards, **settings)
     export(fig, args.output, samples, cards, settings)

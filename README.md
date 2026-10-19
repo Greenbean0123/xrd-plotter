@@ -68,3 +68,22 @@ Tests: `python ci/test_updates.py`. Desktop startup/cache check:
 ## License
 
 MIT; see [LICENSE](LICENSE). Third-party libraries retain their own licenses.
+
+
+### Automatically loaded data
+
+In **Settings → Startup data**, click **Open Default Folder**. Put sample CSV files
+in `patterns/` and reference PDF, CIF, XY or reference CSV files in `references/`.
+They load at every startup. Click **Reload Defaults** to replace the current lists
+without restarting, or **Choose Folder...** to remember a different startup folder.
+Changing the folder takes effect on the next launch or when reloading defaults.
+The default folder is stored in the user application data directory, outside the
+application bundle, so application updates preserve it. On first use, bundled
+example files are copied there; remove unwanted examples from that folder.
+Existing `defaultpattern` folders beside the executable or Mac application remain
+supported. Root-level CSV files are treated as samples; put reference CSV files
+in `references/`. Invalid files are skipped with a warning.
+
+In **Settings**, turn **Show save success messages** on or off to control the
+confirmation after PNG/PDF/SVG or processed-data exports. The preference is
+remembered between launches; export errors and overwrite confirmations still appear.

@@ -45,10 +45,11 @@ def launch():
                 if arg.startswith('--input-dir='):
                     folder = Path(arg.split('=', 1)[1])
             results.put(('status', 'Loading default patterns and reference cards…'))
-            if folder.is_dir():
-                for path in sorted(folder.iterdir()):
-                    if path.suffix.lower() in ('.pdf', '.cif', '.xy'):
-                        xrd_plotter.read_card(path)
+            for path in xrd_plotter.discover(folder)[1]:
+                try:
+                    xrd_plotter.read_card(path)
+                except Exception:
+                    pass  # The GUI reports invalid files while keeping valid defaults available.
             results.put(('ready', (xrd_plotter, folder)))
         except Exception:
             results.put(('error', traceback.format_exc()))

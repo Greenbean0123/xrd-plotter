@@ -15,7 +15,7 @@ def check_cache():
     import xrd_plotter
     with tempfile.TemporaryDirectory() as directory:
         card_cache.cache_directory = lambda: Path(directory)
-        card = next(xrd_plotter.default_input_dir().glob('*.pdf'))
+        card = next(path for path in xrd_plotter.discover(root_dir / 'demo-data')[1] if path.suffix.lower() == '.pdf')
         calls = []
         def parser(*args):
             calls.append(1)
