@@ -33,6 +33,13 @@ with tempfile.TemporaryDirectory(prefix='xrd-cloud-test-') as directory:
 
 dmg = root / 'dist' / f'XRD_Plotter_{version}_Mac_{platform.machine()}.dmg'
 subprocess.run(['hdiutil', 'verify', str(dmg)], check=True)
+with tempfile.TemporaryDirectory(prefix='xrd-dmg-verify-') as mountpoint:
+    subprocess.run(['hdiutil', 'attach', '-readonly', '-nobrowse', '-mountpoint', mountpoint, str(dmg)], check=True)
+    try:
+        subprocess.run(['codesign', '--verify', '--deep', '--strict',
+                        str(Path(mountpoint) / 'XRD Plotter.app')], check=True)
+    finally:
+        subprocess.run(['hdiutil', 'detach', mountpoint], check=True)
 output_dir = root / 'cloud-output'
 output_dir.mkdir(exist_ok=True)
 label = 'AppleSilicon' if expected_arch == 'arm64' else 'Intel'

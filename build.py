@@ -6,6 +6,7 @@ import sys
 import shutil
 import runpy
 import plistlib
+import tempfile
 
 ROOT = Path(__file__).resolve().parent
 VERSION = runpy.run_path(str(ROOT / 'src' / 'app_version.py'))['__version__']
@@ -54,9 +55,8 @@ def main():
         with plist_path.open('wb') as stream:
             plistlib.dump(info, stream)
         subprocess.run(['codesign', '--force', '--deep', '--sign', '-', str(app)], check=True)
-        stage = ROOT / 'build' / 'dmg'
-        stage.mkdir(parents=True, exist_ok=True)
-        shutil.copytree(ROOT / 'dist' / 'XRD Plotter.app', stage / 'XRD Plotter.app', dirs_exist_ok=True)
+        stage = Path(tempfile.mkdtemp(prefix='dmg-', dir=ROOT / 'build'))
+        shutil.copytree(app, stage / 'XRD Plotter.app', symlinks=True)
         link = stage / 'Applications'
         if not link.exists():
             link.symlink_to('/Applications')
