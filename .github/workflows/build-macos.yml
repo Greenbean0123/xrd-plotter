@@ -2,6 +2,12 @@ name: Build Mac applications
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Mac architecture to build
+        type: choice
+        options: [both, silicon, intel]
+        default: both
   push:
     tags: ['v*']
 
@@ -11,20 +17,14 @@ permissions:
 jobs:
   build:
     name: Mac ${{ matrix.name }}
-    runs-on: ${{ matrix.runner }}
+    runs-on: ${{ matrix.name == 'AppleSilicon' && 'macos-14' || 'macos-15-intel' }}
     timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: AppleSilicon
-            runner: macos-15
-            arch: arm64
-          - name: Intel
-            runner: macos-15-intel
-            arch: x86_64
+        name: ${{ fromJSON(inputs.platform == 'silicon' && '["AppleSilicon"]' || inputs.platform == 'intel' && '["Intel"]' || '["AppleSilicon","Intel"]') }}
     env:
-      EXPECTED_ARCH: ${{ matrix.arch }}
+      EXPECTED_ARCH: ${{ matrix.name == 'AppleSilicon' && 'arm64' || 'x86_64' }}
       PYTHONNOUSERSITE: '1'
       PIP_DISABLE_PIP_VERSION_CHECK: '1'
     steps:
