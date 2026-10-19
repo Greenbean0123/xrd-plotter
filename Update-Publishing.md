@@ -2,8 +2,10 @@
 
 The app includes **Check for Updates**, **Update Settings**, background checks,
 download progress, signed manifests, SHA-256 package verification, a detached
-installer and startup confirmation with rollback. The update server URL is
-currently empty: no online updates are published or downloaded automatically.
+installer and startup confirmation with rollback. The default update server is
+https://github.com/Greenbean0123/xrd-plotter/releases/latest/download/updates.json
+and the initial signed 0.0.2 baseline is published. A newer version will be
+offered only after the publisher uploads its packages and signed manifest.
 
 For testing or publishing, set the HTTPS manifest URL in **Update Settings**.
 The publisher can also set `manifest_url` in `src/update_config.json` before

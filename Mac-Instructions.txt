@@ -9,9 +9,9 @@ Changed PDF contents invalidate the cache automatically. User data is unchanged.
 APPLICATION UPDATES
 Check for Updates checks the publisher's signed version manifest.
 Update Settings sets the HTTPS manifest address and automatic-check preference.
-The update server is not configured yet. A check reports this explicitly.
-Once a server is configured, updates download inside the app after confirmation,
-then install and restart. Use the standalone app for automatic installation.
+The default update server is the project's signed manifest on GitHub Releases.
+Newer versions download inside the app after confirmation, then install and
+restart. Use the standalone app for automatic installation.
 See Update-Publishing.md for publisher setup and signing-key instructions.
 
 GETTING STARTED
