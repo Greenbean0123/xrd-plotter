@@ -42,8 +42,9 @@ out of its DMG into a writable Applications folder before updating.
 The installer verifies the signed manifest and package again, prepares the new
 application, then waits for the old application to exit. It keeps a sibling
 `.previous-...` backup. A new app that fails to signal GUI readiness within
-120 seconds is stopped and the previous app is restored and reopened. Backups
-are retained for recovery rather than automatically deleted.
+120 seconds is stopped and the previous app is restored and reopened. After the new GUI reports ready and the updater exits, successful transaction
+backups and temporary packages are automatically removed. Failed updates retain
+recovery files. Startup data and manually downloaded installers are preserved.
 
 Current inputs, colors, labels, ordering and layout are saved before restarting
 and restored when the updated app opens. Input files, exported figures and user
@@ -56,6 +57,29 @@ notarized. macOS may still require approval when launching downloaded apps.
 
 The transaction code and Windows installer are tested locally; actual Mac
 installation, permissions and Gatekeeper behavior require validation on a Mac.
-The Windows end-to-end test uses an isolated temporary installation and the same
-binary under a simulated future manifest. It tests the installer mechanism,
-not a real online release or a migration between two published versions.
+The Windows end-to-end test uses an isolated temporary installation and accepts
+separate old/new binaries. It verifies GUI/session restoration and successful
+backup/package cleanup. The 0.0.3 to revised 0.0.4 transition has been tested.
+
+
+## Keep the main release page concise
+
+Attach only the three manual installers (Windows, Apple Silicon, Intel) and
+`updates.json` to the main `vVERSION` release. Keep `updates.json` there because
+installed clients use the main repository's `releases/latest/download/updates.json`.
+Put the two Mac update ZIPs on a separate `update-files-vVERSION` supporting
+release, marked prerelease and explicitly not Latest. Publish that supporting
+release before changing the signed feed. Windows updates reuse the main EXE.
+
+When signing, keep `--base-url` pointed at the main release and add these overrides:
+
+```text
+--asset-base-url macos-arm64=https://github.com/Greenbean0123/xrd-plotter/releases/download/update-files-vVERSION
+--asset-base-url macos-x86_64=https://github.com/Greenbean0123/xrd-plotter/releases/download/update-files-vVERSION
+```
+
+Verify all URLs and signed hashes before removing old copies of update ZIPs from
+the main page. Put installer checksums in a collapsed section of the release
+notes, and use GitHub's automatic source archives instead of extra source ZIPs.
+Retain earlier releases unless explicitly asked to delete them. UV-Vis is hosted
+in its independent repository at https://github.com/Greenbean0123/uvvis-plotter.

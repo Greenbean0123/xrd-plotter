@@ -21,6 +21,8 @@ def main():
     parser.add_argument('--notes', default='')
     parser.add_argument('--base-url', help='HTTPS directory containing the release assets')
     parser.add_argument('--asset', action='append', default=[], metavar='PLATFORM=FILE')
+    parser.add_argument('--asset-base-url', action='append', default=[], metavar='PLATFORM=HTTPS_URL',
+                        help='Override the download directory for one platform (for a separate update release)')
     parser.add_argument('--output', type=Path, default=ROOT / 'releases' / 'updates.json')
     args = parser.parse_args()
     key_path = ROOT / '.release-keys' / 'update-signing-key.pem'
@@ -52,6 +54,13 @@ def main():
     if args.version != __version__:
         parser.error(f'The manifest version must match src/app_version.py ({__version__}). Update the version and rebuild first.')
     updater.require_https(args.base_url)
+    base_urls = {}
+    for value in args.asset_base_url:
+        key, url = value.split('=', 1)
+        updater.require_https(url)
+        if key in base_urls:
+            parser.error(f'Duplicate platform URL: {key}')
+        base_urls[key] = url
     private = serialization.load_pem_private_key(key_path.read_bytes(), password=None)
     assets = {}
     for value in args.asset:
@@ -61,9 +70,11 @@ def main():
         file = Path(filename)
         if key in assets:
             parser.error(f'Duplicate platform: {key}')
-        assets[key] = {'url': args.base_url.rstrip('/') + '/' + quote(file.name),
+        assets[key] = {'url': base_urls.get(key, args.base_url).rstrip('/') + '/' + quote(file.name),
                        'size': file.stat().st_size, 'sha256': hashlib.sha256(file.read_bytes()).hexdigest(),
                        'format': 'app-zip' if key.startswith('macos-') else 'exe'}
+    if set(base_urls) - set(assets):
+        parser.error('Platform URL overrides must correspond to an --asset platform.')
     payload = {'schema': 1, 'version': args.version, 'notes': args.notes, 'assets': assets}
     envelope = {'payload': payload, 'signature': base64.b64encode(private.sign(updater.canonical(payload))).decode()}
     # Validate using exactly the public key embedded in the application.
