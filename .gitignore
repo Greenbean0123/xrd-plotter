@@ -1,0 +1,14 @@
+build/
+dist/
+.build-venv/
+__pycache__/
+*.pyc
+releases/
+build-windows.log
+.venv/
+.venv-backup-*/
+.runtime/
+logs/
+.release-keys/
+cloud-output/
+src/defaultpattern/

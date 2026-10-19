@@ -1,0 +1,24 @@
+#!/bin/bash
+set -u
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+if [ ! -f "$ROOT/mac/bootstrap.sh" ]; then
+    /usr/bin/osascript -e 'display alert "XRD Plotter" message "Keep this launcher inside the extracted XRD_Plotter_Mac folder. The mac/bootstrap.sh file could not be found." as critical' >/dev/null 2>&1
+    exit 1
+fi
+mkdir -p "$ROOT/logs" || exit 1
+LOG="$ROOT/logs/launcher-$(date +%Y%m%d-%H%M%S).log"
+/usr/bin/osascript -e 'display notification "Checking the environment and starting the application. First-time setup may take a few minutes." with title "XRD Plotter"' >/dev/null 2>&1 || true
+if /bin/bash "$ROOT/mac/bootstrap.sh" start >> "$LOG" 2>&1; then
+    exit 0
+else
+    /usr/bin/osascript - "$ROOT/logs" <<'APPLESCRIPT' >/dev/null 2>&1
+on run argv
+    set logFolder to item 1 of argv
+    set resultDialog to display alert "XRD Plotter could not start" message "Open the logs folder for the error details. You can also run Repair.command, then try again." as critical buttons {"Close", "Open Logs"} default button "Open Logs"
+    if button returned of resultDialog is "Open Logs" then
+        tell application "Finder" to open (POSIX file logFolder)
+    end if
+end run
+APPLESCRIPT
+    exit 1
+fi

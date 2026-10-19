@@ -1,0 +1,59 @@
+XRD Plotter for Mac - Automatic Setup
+
+STARTUP IMPROVEMENTS
+A loading window appears before plotting libraries and default reference cards
+load in the background. Parsed PDF references are cached in
+~/Library/Caches/XRD Plotter/references-v1 for subsequent launches.
+Changed PDF contents invalidate the cache automatically. User data is unchanged.
+
+APPLICATION UPDATES
+Check for Updates checks the publisher's signed version manifest.
+Update Settings sets the HTTPS manifest address and automatic-check preference.
+The update server is not configured yet. A check reports this explicitly.
+Once a server is configured, updates download inside the app after confirmation,
+then install and restart. Use the standalone app for automatic installation.
+See Update-Publishing.md for publisher setup and signing-key instructions.
+
+GETTING STARTED
+1. Extract the entire ZIP to a permanent location, such as Documents.
+   Do not run the program from inside the ZIP archive.
+2. Double-click XRD Plotter.app to launch without a Terminal window.
+   Keep this launcher inside the extracted folder with the other files.
+3. The launcher checks Python, Tkinter and the required packages automatically.
+   If compatible Python is missing, it downloads the official Python installer.
+   Complete the macOS installation steps (an administrator password may be
+   required), then close the installer. Startup continues in the background.
+4. The first setup requires an internet connection. Once the environment is
+   ready, normal startup does not download the dependencies again.
+
+AVAILABLE COMMANDS
+XRD Plotter.app   Launch without Terminal; errors appear in a dialog.
+Start.command     Check the environment and launch XRD Plotter.
+Repair.command    Check the environment and update the required packages.
+Diagnose.command  Save an environment report without installing packages.
+Build-Mac.command Prepare the environment and create .app and .dmg files in dist/.
+
+Start.command is an alternative launcher that shows setup output in Terminal.
+Confirm that the program works before running Build-Mac.command.
+The included .app is a launcher and needs this folder and a prepared Python
+environment. Build-Mac.command creates a standalone app with Python bundled.
+
+TROUBLESHOOTING
+If double-clicking reports a permission error, open Terminal, type bash followed
+by a space, drag Start.command into Terminal, and press Return.
+If macOS blocks opening the file, use right-click > Open or follow the options
+shown in System Settings > Privacy & Security.
+
+If an operation fails, send back the logs folder. It contains the macOS version,
+processor architecture and full error output.
+Moving this folder may require rebuilding the virtual environment. The launcher
+detects an unusable environment and preserves it as a backup before rebuilding.
+
+Intel and Apple Silicon dependency downloads have been checked. Actual startup
+and generated applications still need verification on a Mac.
+Developer ID signing and Apple notarization are not configured.
+
+Official Python installation guide:
+https://docs.python.org/3/using/mac.html
+Pinned installer version and checksum:
+https://www.python.org/downloads/release/python-31316/
