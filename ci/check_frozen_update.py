@@ -66,7 +66,7 @@ def main():
         job_file = transaction / 'job.json'
         job_file.write_text(json.dumps(job), encoding='utf-8')
         session_file = profile / 'XRD Plotter' / 'update-session.json'
-        session_file.parent.mkdir(parents=True)
+        session_file.parent.mkdir(parents=True, exist_ok=True)
         session_file.write_text(json.dumps({
             'groups': {'samples': [[{'path': str(ROOT / 'demo-data' / 'Synthetic Demo A.csv')},
                 'Saved update pattern', '#ff6600', {'_order_id': 'saved-pattern', '_visible': True}]], 'cards': []},
