@@ -1,6 +1,6 @@
 # XRD Plotter
 
-![Application icon](assets/xrd-plotter-icon.png)
+<img src="assets/xrd-plotter-icon.png" alt="XRD Plotter icon" width="128" height="128">
 
 A desktop tool for stacked X-ray diffraction plots on Windows and macOS.
 
