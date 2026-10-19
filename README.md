@@ -4,6 +4,15 @@
 
 A desktop tool for stacked X-ray diffraction plots on Windows and macOS.
 
+## UV-Vis Plotter
+
+The independent English-language UV-Vis application is in [uvvis/](uvvis/README.md).
+It supports wavelength/absorbance limits, global or wavelength-range normalization,
+per-spectrum visibility and export selection, configurable figure size and DPI,
+and GitHub update checks. Download the Windows application from the
+[UV-Vis 0.0.1 release](https://github.com/Greenbean0123/xrd-plotter/releases/tag/uvvis-v0.0.1).
+UV-Vis releases use the `uvvis-v` tag prefix separately from XRD releases.
+
 - Subtract the background and normalize each scan by its maximum corrected intensity.
 - Import refinement CSV scans and PDF, CIF or XY references.
 - Adjust colors, labels, visibility, plotting order, figure size and export resolution.
