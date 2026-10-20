@@ -53,6 +53,8 @@ jobs:
         run: |
           python -c "import os,platform; assert platform.machine() == os.environ['EXPECTED_ARCH'], platform.machine()"
           python mac/check_environment.py
+      - name: Test line width controls
+        run: python ci/test_plot_style.py
       - name: Build application and disk image
         run: python build.py
       - name: Verify frozen application and prepare downloads

@@ -16,6 +16,8 @@ UV-Vis releases use the `uvvis-v` tag prefix separately from XRD releases.
 - Subtract the background and normalize each scan by its maximum corrected intensity.
 - Import refinement CSV scans and PDF, CIF or XY references.
 - Adjust colors, labels, visibility, plotting order, figure size and export resolution.
+- Set plot-frame, sample-curve, reference-curve/stick and reference-baseline widths independently under Layout → Line widths (pt). Settings apply to preview and PNG/PDF/SVG exports; 0 hides the corresponding lines.
+- The default Y-axis title is `Intensity(a.u.)`; edit or clear it under Layout.
 - Use Data, Layout and Settings tabs; colors live under Layout, while theme, UI scale and updates live under Settings.
 - Export PNG, PDF, SVG and processed data.
 - Cache parsed PDF references and show progress during startup.

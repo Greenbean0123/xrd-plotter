@@ -118,7 +118,11 @@ def _parse_card(path, wavelength=1.54059, upper_angle=100):
                 peaks=np.array([[r['2theta'], r['intensity']] for r in rows]))
 
 
-def make_figure(samples, cards, xmin=10, xmax=90, title='', color='#0000dd', spacing=1.35, dpi=400, width_cm=34.29, height_cm=None, xlabel='2θ (°)', ylabel='', wavelength=1.54059, display_order=None):
+def make_figure(samples, cards, xmin=10, xmax=90, title='', color='#0000dd', spacing=1.35, dpi=400, width_cm=34.29, height_cm=None, xlabel='2θ (°)', ylabel='Intensity(a.u.)', wavelength=1.54059, display_order=None, frame_linewidth=1.0, pattern_linewidth=0.85, card_linewidth=0.85, reference_baseline_linewidth=0.45):
+    for name, value in [('Frame', frame_linewidth), ('Pattern', pattern_linewidth),
+                        ('Reference', card_linewidth), ('Reference baseline', reference_baseline_linewidth)]:
+        if not np.isfinite(value) or value < 0:
+            raise ValueError(f'{name} line width must be a finite, non-negative number (pt)')
     if not isinstance(dpi, (int, float)) or not np.isfinite(dpi) or dpi <= 0 or int(dpi) != dpi:
         raise ValueError('DPI must be a positive whole number')
     if not samples and not cards:
@@ -150,7 +154,7 @@ def make_figure(samples, cards, xmin=10, xmax=90, title='', color='#0000dd', spa
             mask = (row['x'] >= xmin) & (row['x'] <= xmax)
             if not mask.any():
                 raise ValueError(f"{row['label']}: no data in selected range")
-            ax.plot(row['x'][mask], row['normalized'][mask] + base, color=row.get('color') or color, lw=0.85)
+            ax.plot(row['x'][mask], row['normalized'][mask] + base, color=row.get('color') or color, lw=pattern_linewidth)
             bottoms.append(base + min(0, row['normalized'][mask].min()))
         else:
             peaks = row['peaks']
@@ -158,12 +162,12 @@ def make_figure(samples, cards, xmin=10, xmax=90, title='', color='#0000dd', spa
                 raise ValueError(f"{row['label']}: invalid card peaks")
             mask = (peaks[:, 0] >= xmin) & (peaks[:, 0] <= xmax)
             # Coincident lines remain separate, preserving the supplied table intensities.
-            ax.hlines(base, xmin, xmax, color='#777777', lw=0.45)
+            ax.hlines(base, xmin, xmax, color='#777777', lw=reference_baseline_linewidth)
             if row.get('kind') == 'profile':
-                ax.plot(peaks[mask, 0], base + peaks[mask, 1] / peaks[:, 1].max(), color='black', lw=0.85)
+                ax.plot(peaks[mask, 0], base + peaks[mask, 1] / peaks[:, 1].max(), color='black', lw=card_linewidth)
                 bottoms.append(base + min(0, peaks[mask, 1].min() / peaks[:, 1].max()) if mask.any() else base)
             else:
-                ax.vlines(peaks[mask, 0], base, base + peaks[mask, 1] / peaks[:, 1].max(), color='black', lw=0.85)
+                ax.vlines(peaks[mask, 0], base, base + peaks[mask, 1] / peaks[:, 1].max(), color='black', lw=card_linewidth)
                 bottoms.append(base)
         label_style = row.get('label_style', {})
         ax.text(xmin + (xmax - xmin) * label_style.get('x_percent', 99.2) / 100,
@@ -182,7 +186,7 @@ def make_figure(samples, cards, xmin=10, xmax=90, title='', color='#0000dd', spa
     ax.tick_params(axis='x', which='major', direction='out', length=7, width=1)
     ax.tick_params(axis='x', which='minor', direction='out', length=4, width=0.8)
     for spine in ax.spines.values():
-        spine.set_linewidth(1)
+        spine.set_linewidth(frame_linewidth)
     if title:
         fig.suptitle(title, fontsize=14, y=0.99)
     return fig
@@ -276,6 +280,8 @@ def gui(initial_dir, root=None):
         style.configure('Muted.TLabel', foreground=colors['muted'])
         style.configure('Title.TLabel', font=(ui_font,round(19*factor),'bold'))
         style.configure('TEntry', fieldbackground=colors['field'], foreground=colors['text'], insertcolor=colors['text'])
+        style.configure('TSpinbox', fieldbackground=colors['field'], foreground=colors['text'],
+                        insertcolor=colors['text'], background=colors['button'], arrowcolor=colors['text'], padding=6)
         style.configure('TCombobox', fieldbackground=colors['field'], background=colors['button'], foreground=colors['text'], arrowcolor=colors['text'])
         style.map('TCombobox', fieldbackground=[('readonly',colors['field'])], foreground=[('readonly',colors['text'])], selectbackground=[('readonly',colors['field'])], selectforeground=[('readonly',colors['text'])])
         style.configure('TNotebook', background=colors['bg'], borderwidth=0, lightcolor=colors['bg'],darkcolor=colors['bg'],bordercolor=colors['bg'])
@@ -949,11 +955,21 @@ def gui(initial_dir, root=None):
     for key, label, default in [('xmin', '2θ minimum (°)', '10'), ('xmax', '2θ maximum (°)', '90'),
                                  ('wavelength', 'CIF wavelength (Å)', '1.54059'), ('spacing', 'Vertical spacing', '1.35'), ('dpi', 'Export DPI (PNG)', '400'),
                                  ('width_cm', 'Image width (cm)', '34.29'), ('height_cm', 'Image height (cm; blank = auto)', ''),
-                                 ('xlabel', 'X-axis title', '2θ (°)'), ('ylabel', 'Y-axis title', ''),
+                                 ('xlabel', 'X-axis title', '2θ (°)'), ('ylabel', 'Y-axis title', 'Intensity(a.u.)'),
                                  ('title', 'Plot title', '')]:
         ttk.Label(layout_page, text=label).pack(anchor='w', pady=(5, 0))
         variables[key] = tk.StringVar(value=default)
         ttk.Entry(layout_page, textvariable=variables[key]).pack(fill='x')
+    ttk.Separator(layout_page).pack(fill='x', pady=(18, 12))
+    ttk.Label(layout_page, text='Line widths', style='Section.TLabel').pack(anchor='w', pady=(0, 5))
+    for key, caption, default in [('frame_linewidth', 'Plot frame (pt)', '1.0'),
+                                  ('pattern_linewidth', 'Sample patterns (pt)', '0.85'),
+                                  ('card_linewidth', 'Reference patterns / sticks (pt)', '0.85'),
+                                  ('reference_baseline_linewidth', 'Reference baselines (pt)', '0.45')]:
+        ttk.Label(layout_page, text=caption).pack(anchor='w', pady=(5, 0))
+        variables[key] = tk.StringVar(value=default)
+        ttk.Spinbox(layout_page, textvariable=variables[key], from_=0, to=10, increment=0.05).pack(fill='x')
+    ttk.Label(layout_page, text='Applies to preview and every image export.\n0 hides the corresponding lines.', style='Muted.TLabel').pack(anchor='w', pady=(6, 0))
     ttk.Separator(layout_page).pack(fill='x', pady=(18, 12))
     ttk.Label(layout_page, text='Colors', style='Section.TLabel').pack(anchor='w', pady=(0, 5))
     color_controls = ttk.Frame(layout_page)
@@ -986,7 +1002,8 @@ def gui(initial_dir, root=None):
                     settings[k] = None
                 elif k == 'dpi':
                     settings[k] = int(value)
-                elif k in ['xmin', 'xmax', 'spacing', 'width_cm', 'height_cm', 'wavelength']:
+                elif k in ['xmin', 'xmax', 'spacing', 'width_cm', 'height_cm', 'wavelength',
+                           'frame_linewidth', 'pattern_linewidth', 'card_linewidth', 'reference_baseline_linewidth']:
                     settings[k] = float(value)
                 else:
                     settings[k] = value
@@ -1215,7 +1232,11 @@ def main():
     parser.add_argument('--width-cm', type=float, default=34.29)
     parser.add_argument('--height-cm', type=float, default=None, help='Omit for automatic height')
     parser.add_argument('--xlabel', default='2θ (°)')
-    parser.add_argument('--ylabel', default='')
+    parser.add_argument('--ylabel', default='Intensity(a.u.)')
+    parser.add_argument('--frame-linewidth', type=float, default=1.0, help='Plot frame width in pt')
+    parser.add_argument('--pattern-linewidth', type=float, default=0.85, help='Sample curve width in pt')
+    parser.add_argument('--card-linewidth', type=float, default=0.85, help='Reference curve/stick width in pt')
+    parser.add_argument('--reference-baseline-linewidth', type=float, default=0.45, help='Reference baseline width in pt')
     parser.add_argument('--wavelength', type=float, default=1.54059, help='CIF calculation wavelength in angstroms')
     args = parser.parse_args()
     if not args.output:
@@ -1230,7 +1251,7 @@ def main():
         if label:
             sample['label'] = label.group().replace('C', ' °C')
     cards = [read_card(p, wavelength=args.wavelength, upper_angle=args.xmax) for p in card_paths]
-    settings = {k: getattr(args, k) for k in ['xmin', 'xmax', 'title', 'color', 'spacing', 'dpi', 'width_cm', 'height_cm', 'xlabel', 'ylabel', 'wavelength']}
+    settings = {k: getattr(args, k) for k in ['xmin', 'xmax', 'title', 'color', 'spacing', 'dpi', 'width_cm', 'height_cm', 'xlabel', 'ylabel', 'wavelength', 'frame_linewidth', 'pattern_linewidth', 'card_linewidth', 'reference_baseline_linewidth']}
     fig = make_figure(samples, cards, **settings)
     export(fig, args.output, samples, cards, settings)
     print(f'Exported {args.output}.png / .pdf / .svg')

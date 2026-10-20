@@ -24,12 +24,18 @@ subprocess.run(['codesign', '--verify', '--deep', '--strict', str(app)], check=T
 with tempfile.TemporaryDirectory(prefix='xrd-cloud-test-') as directory:
     output = Path(directory) / 'plot'
     # Deliberately do not pass --input-dir: test the samples bundled in the app.
-    subprocess.run([str(binary), '--output', str(output), '--dpi', '80'],
+    subprocess.run([str(binary), '--output', str(output), '--dpi', '80',
+                    '--frame-linewidth', '2', '--pattern-linewidth', '1.5',
+                    '--card-linewidth', '1.2', '--reference-baseline-linewidth', '0.3'],
                    cwd=directory, check=True, timeout=120)
     for suffix in ('.png', '.pdf', '.svg'):
         assert output.with_suffix(suffix).stat().st_size > 1000
     metadata = json.loads((Path(directory) / 'plot_data' / 'processing.json').read_text())
     assert len(metadata['samples']) == 2 and len(metadata['cards']) == 3
+    assert metadata['settings']['ylabel'] == 'Intensity(a.u.)'
+    for key, value in [('frame_linewidth', 2), ('pattern_linewidth', 1.5),
+                       ('card_linewidth', 1.2), ('reference_baseline_linewidth', 0.3)]:
+        assert metadata['settings'][key] == value, key
 
 dmg = root / 'dist' / f'XRD_Plotter_{version}_Mac_{platform.machine()}.dmg'
 subprocess.run(['hdiutil', 'verify', str(dmg)], check=True)
@@ -53,7 +59,7 @@ digest = hashlib.sha256(installer.read_bytes()).hexdigest()
     'version': version, 'architecture': expected_arch,
     'commit': os.environ.get('GITHUB_SHA'),
     'validated': ['bundle version', 'architecture', 'ad-hoc signature',
-                  'bundled samples', 'PNG/PDF/SVG export', 'DMG integrity'],
+                  'bundled samples', 'PNG/PDF/SVG export', 'line widths and Y-axis title', 'DMG integrity'],
     'developer_id_signed': False, 'notarized': False,
 }, indent=2))
 print(f'Verified: {installer.name}')
